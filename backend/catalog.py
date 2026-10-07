@@ -147,27 +147,35 @@ EPIDEMIC_INTERVENTIONS = [
 # --------------------------------------------------------------------------- #
 # Aggregate metric labels (stats dict keys -> human labels)
 # --------------------------------------------------------------------------- #
+# A *metric* entry is ``{"key", "label", "direction"}``.  ``direction`` tells the
+# baseline regression whether "higher is better" (``up``), "lower is better"
+# (``down``) or "neither" (``neutral`` — only *changed / unchanged* is judged).
+# It is optional and defaults to ``neutral``.
+def _metric(key: str, label: str, direction: str = "neutral") -> Dict[str, Any]:
+    return {"key": key, "label": label, "direction": direction}
+
+
 TRAFFIC_METRICS = [
-    {"key": "mean_speed", "label": "平均速度"},
-    {"key": "flow", "label": "流量（辆/步）"},
-    {"key": "density", "label": "车辆密度"},
-    {"key": "stopped", "label": "停车比例"},
-    {"key": "speed_std", "label": "速度标准差"},
+    _metric("mean_speed", "平均速度", "up"),
+    _metric("flow", "流量（辆/步）", "up"),
+    _metric("density", "车辆密度"),
+    _metric("stopped", "停车比例", "down"),
+    _metric("speed_std", "速度标准差", "down"),
 ]
 
 ECOLOGY_METRICS = [
-    {"key": "rabbits", "label": "兔子数量"},
-    {"key": "foxes", "label": "狐狸数量"},
-    {"key": "grass_coverage", "label": "草地覆盖率"},
-    {"key": "mean_energy", "label": "平均能量"},
+    _metric("rabbits", "兔子数量"),
+    _metric("foxes", "狐狸数量"),
+    _metric("grass_coverage", "草地覆盖率"),
+    _metric("mean_energy", "平均能量"),
 ]
 
 EPIDEMIC_METRICS = [
-    {"key": "susceptible", "label": "易感者 S"},
-    {"key": "infected", "label": "感染者 I"},
-    {"key": "recovered", "label": "康复者 R"},
-    {"key": "new_infections", "label": "新增感染"},
-    {"key": "prevalence", "label": "感染率"},
+    _metric("susceptible", "易感者 S"),
+    _metric("infected", "感染者 I", "down"),
+    _metric("recovered", "康复者 R"),
+    _metric("new_infections", "新增感染", "down"),
+    _metric("prevalence", "感染率", "down"),
 ]
 
 # --------------------------------------------------------------------------- #

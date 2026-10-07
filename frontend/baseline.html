@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>基线回归 · 复杂系统模拟仿真平台</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="topnav" id="topnav"></nav>
+  <main class="container">
+    <h1 class="page-title">基线回归</h1>
+    <p class="page-sub">
+      把一次（或多次复制）运行冻结为<b>不可变、带校验和</b>的基线；之后同一场景的每次运行自动与基线对比——
+      按绝对步数对齐共同区间、按完成进度对齐整体形态，偏差以基线自身的随机波动为标尺，
+      持续越界才判为「真变化」，孤立尖峰视为正常抖动。
+    </p>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>① 从已有运行标记基线</h3>
+        <div class="field">
+          <label>场景</label>
+          <select id="markScene" style="max-width:100%"></select>
+        </div>
+        <div class="field">
+          <label>选择一次或多次同配置运行（多次 = 复制基线，噪声带更可靠）</label>
+          <select id="markRuns" multiple size="6" style="width:100%"></select>
+        </div>
+        <div class="field">
+          <label>基线名称（可选）</label>
+          <input id="markName" placeholder="如：β=0.30 发布基线" style="width:100%">
+        </div>
+        <button class="btn primary" id="markBtn">标记为基线</button>
+        <span class="muted small" id="markStatus" style="margin-left:10px"></span>
+      </div>
+
+      <div class="card">
+        <h3>② 从场景新跑复制基线（推荐 5 次以上）</h3>
+        <div class="field">
+          <label>场景</label>
+          <select id="repScene" style="max-width:100%"></select>
+        </div>
+        <div class="row gap-6">
+          <div class="field" style="flex:1">
+            <label>复制次数</label>
+            <input id="repN" type="number" value="5" min="1" max="20" style="width:100%">
+          </div>
+          <div class="field" style="flex:1">
+            <label>每次步数</label>
+            <input id="repSteps" type="number" value="150" min="10" style="width:100%">
+          </div>
+        </div>
+        <div class="field">
+          <label>基线名称（可选）</label>
+          <input id="repName" placeholder="留空则自动命名" style="width:100%">
+        </div>
+        <button class="btn primary" id="repBtn">后台生成复制基线</button>
+        <span class="muted small" id="repStatus" style="margin-left:10px"></span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>③ 基线列表与同场景运行对比</h3>
+      <div id="baselineList"></div>
+      <div id="sceneRunList" style="margin-top:14px;display:none"></div>
+    </div>
+
+    <div id="diffCard" class="card" style="margin-top:16px;display:none">
+      <div class="row between">
+        <h3 id="diffTitle" style="margin:0">差异摘要</h3>
+        <div class="row gap-6">
+          <select id="metricSel" style="min-width:180px"></select>
+          <label class="check small"><input type="checkbox" id="normChk"> 按完成进度对齐</label>
+        </div>
+      </div>
+      <div id="verdictBox" style="margin:12px 0"></div>
+      <div id="metricCards" class="grid grid-4"></div>
+      <div id="summaryBox" style="margin:14px 0"></div>
+      <div id="zchart" class="chart" style="height:220px"></div>
+      <div id="mainchart" class="chart"></div>
+    </div>
+  </main>
+
+  <script src="/vendor/echarts.min.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/baseline.js"></script>
+</body>
+</html>

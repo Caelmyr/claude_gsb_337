@@ -34,7 +34,8 @@ from typing import Any, Dict, List, Optional
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
-_DIRS = ("scenes", "runs", "experiments", "reports", "exports")
+_DIRS = ("scenes", "runs", "experiments", "reports", "exports",
+         "baselines", "diffs")
 
 
 def ensure_dirs() -> None:
@@ -298,3 +299,78 @@ def reports_dir() -> str:
 
 def exports_dir() -> str:
     return os.path.join(DATA_DIR, "exports")
+
+
+# --------------------------------------------------------------------------- #
+# Baselines (immutable, checksummed regression references)
+# --------------------------------------------------------------------------- #
+def baselines_dir() -> str:
+    return os.path.join(DATA_DIR, "baselines")
+
+
+def baseline_path(baseline_id: str) -> str:
+    return os.path.join(baselines_dir(), f"{baseline_id}.json")
+
+
+def save_baseline(doc: Dict[str, Any]) -> None:
+    atomic_write_json(baseline_path(doc["id"]), doc)
+
+
+def load_baseline(baseline_id: str) -> Optional[Dict[str, Any]]:
+    return read_json(baseline_path(baseline_id))
+
+
+def delete_baseline(baseline_id: str) -> bool:
+    return delete_file(baseline_path(baseline_id))
+
+
+def list_baselines() -> List[Dict[str, Any]]:
+    """All baseline documents, most recently created first."""
+    out: List[Dict[str, Any]] = []
+    d = baselines_dir()
+    if not os.path.isdir(d):
+        return out
+    for name in os.listdir(d):
+        if name.endswith(".json"):
+            doc = read_json(os.path.join(d, name))
+            if doc:
+                out.append(doc)
+    out.sort(key=lambda b: b.get("created_at", ""), reverse=True)
+    return out
+
+
+# --------------------------------------------------------------------------- #
+# Regression diffs (one document per candidate run; survives baseline deletion)
+# --------------------------------------------------------------------------- #
+def diffs_dir() -> str:
+    return os.path.join(DATA_DIR, "diffs")
+
+
+def diff_path(run_id: str) -> str:
+    return os.path.join(diffs_dir(), f"{run_id}.json")
+
+
+def save_diff(doc: Dict[str, Any]) -> None:
+    atomic_write_json(diff_path(doc["run_id"]), doc)
+
+
+def load_diff(run_id: str) -> Optional[Dict[str, Any]]:
+    return read_json(diff_path(run_id))
+
+
+def delete_diff(run_id: str) -> bool:
+    return delete_file(diff_path(run_id))
+
+
+def list_diffs() -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    d = diffs_dir()
+    if not os.path.isdir(d):
+        return out
+    for name in os.listdir(d):
+        if name.endswith(".json"):
+            doc = read_json(os.path.join(d, name))
+            if doc:
+                out.append(doc)
+    out.sort(key=lambda x: x.get("generated_at", ""), reverse=True)
+    return out

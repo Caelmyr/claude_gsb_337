@@ -21,6 +21,32 @@ function render(rpt) {
   const events = (rpt.events || []).slice().reverse().map((e) => `
     <tr><td>${e.step}</td><td>${esc(e.type)}</td><td class="muted small">${esc((e.result && e.result.reason) || "")}</td></tr>`).join("");
 
+  const bd = rpt.baseline;
+  let baselineCard = "";
+  if (bd) {
+    const extra = (bd.stale ? ' <span class="badge paused">结论已过时</span>' : "")
+      + (bd.integrity === "baseline_missing" ? ' <span class="badge error">基线已删除</span>'
+         : bd.integrity === "baseline_corrupt" ? ' <span class="badge error">基线异常</span>'
+         : bd.baseline_status === "retired" ? ' <span class="badge ready">基线已停用</span>' : "");
+    const c = bd.counts || {};
+    baselineCard = `
+    <div class="card">
+      <div class="row between">
+        <h2 style="margin:0">基线回归结论</h2>
+        <a class="btn small" href="/baseline.html?run=${esc(rpt.run_id)}">查看详细对比 →</a>
+      </div>
+      <div class="row gap-6" style="margin-top:10px">
+        ${baselineVerdictBadge({ verdict: bd.verdict, baseline_name: bd.baseline_name,
+                                 stale: bd.stale, integrity: bd.integrity })}${extra}
+        <span class="muted small">基线：${esc(bd.baseline_name || bd.baseline_id)}</span>
+      </div>
+      <p class="muted small" style="margin:8px 0 0">
+        改善 ${c.better || 0} · 恶化 ${c.worse || 0} · 仅变化 ${c.changed_neutral || 0}
+        · 弱偏离 ${c.hinted || 0} · 无显著差异 ${c.unchanged || 0}
+      </p>
+    </div>`;
+  }
+
   el("reportBody").innerHTML = `
     <div class="card">
       <div class="row between">
@@ -32,6 +58,8 @@ function render(rpt) {
         </div>
       </div>
     </div>
+
+    ${baselineCard}
 
     <div class="card">
       <h2>结论摘要</h2>

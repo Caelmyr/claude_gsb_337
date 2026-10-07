@@ -8,6 +8,7 @@ const CARDS = [
   { file: "intervention.html", icon: "💉", title: "干预措施", desc: "在运行中施加政策 / 药物 / 捕杀等干预并查看日志。" },
   { file: "replay.html", icon: "⏪", title: "回放与时间轴", desc: "拖动时间轴快速回放任意时间步的个体快照。" },
   { file: "compare.html", icon: "⚖️", title: "对比实验", desc: "多组参数并行运行，叠加对比不同策略的效果。" },
+  { file: "baseline.html", icon: "🔖", title: "基线回归", desc: "冻结不可变基线，自动判定后续运行相对基线变好、变坏还是正常抖动。" },
   { file: "report.html", icon: "📋", title: "报告生成", desc: "自动汇总峰值、终态与领域小结，生成运行报告。" },
   { file: "export.html", icon: "💾", title: "数据导出", desc: "导出统计 CSV、完整运行 JSON 或个体状态 JSON。" },
   { file: "history.html", icon: "🗂", title: "历史场景", desc: "浏览历史场景、运行与实验，一键重新打开或回放。" },
@@ -20,7 +21,8 @@ async function load() {
     <div class="stat"><div class="k">场景</div><div class="v">${hist.scenes.length}</div><div class="d">已保存的场景定义</div></div>
     <div class="stat"><div class="k">运行</div><div class="v">${hist.runs.length}</div><div class="d">历史运行总数</div></div>
     <div class="stat"><div class="k">已完成</div><div class="v">${finished}</div><div class="d">批量运行至完成</div></div>
-    <div class="stat"><div class="k">对比实验</div><div class="v">${hist.experiments.length}</div><div class="d">多组参数实验</div></div>`;
+    <div class="stat"><div class="k">对比实验</div><div class="v">${hist.experiments.length}</div><div class="d">多组参数实验</div></div>
+    <div class="stat"><div class="k">基线</div><div class="v">${(hist.baselines || []).filter((b) => b.status === "active").length}</div><div class="d">启用中的回归基线</div></div>`;
 
   el("cards").innerHTML = CARDS.map((c) => `
     <a class="card" href="/${c.file}" style="display:block;text-decoration:none;color:var(--text)">

@@ -82,6 +82,7 @@ def _narrative(domain: str, metrics: Dict[str, Dict[str, Any]],
 
 def generate_report(run_id: str) -> Dict[str, Any]:
     """Build and persist the report for ``run_id``, returning it."""
+    from . import baseline
     meta = storage.load_run_meta(run_id)
     if meta is None:
         raise KeyError(f"run not found: {run_id}")
@@ -90,6 +91,19 @@ def generate_report(run_id: str) -> Dict[str, Any]:
     domain = meta["domain"]
 
     metrics = _metric_rows(domain, series)
+    diff = baseline.load_diff_annotated(run_id)
+    baseline_info = None
+    if diff is not None:
+        baseline_info = {
+            "baseline_id": diff.get("baseline_id"),
+            "baseline_name": diff.get("baseline_name"),
+            "baseline_status": diff.get("baseline_status"),
+            "verdict": diff.get("verdict"),
+            "verdict_label": diff.get("verdict_label"),
+            "counts": diff.get("counts"),
+            "integrity": diff.get("integrity"),
+            "stale": diff.get("stale"),
+        }
     report = {
         "run_id": run_id,
         "name": meta["name"],
@@ -101,6 +115,7 @@ def generate_report(run_id: str) -> Dict[str, Any]:
         "config": meta["config"],
         "metrics": metrics,
         "events": events,
+        "baseline": baseline_info,
         "summary": _narrative(domain, metrics, len(series)),
         "generated_at": util.now_iso(),
     }
