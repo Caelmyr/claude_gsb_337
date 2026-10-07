@@ -146,28 +146,30 @@ EPIDEMIC_INTERVENTIONS = [
 
 # --------------------------------------------------------------------------- #
 # Aggregate metric labels (stats dict keys -> human labels)
+# ``better``: which direction counts as an improvement in baseline regression
+# ("high" / "low" / None when the metric has no inherent good direction).
 # --------------------------------------------------------------------------- #
 TRAFFIC_METRICS = [
-    {"key": "mean_speed", "label": "平均速度"},
-    {"key": "flow", "label": "流量（辆/步）"},
-    {"key": "density", "label": "车辆密度"},
-    {"key": "stopped", "label": "停车比例"},
-    {"key": "speed_std", "label": "速度标准差"},
+    {"key": "mean_speed", "label": "平均速度", "better": "high"},
+    {"key": "flow", "label": "流量（辆/步）", "better": "high"},
+    {"key": "density", "label": "车辆密度", "better": None},
+    {"key": "stopped", "label": "停车比例", "better": "low"},
+    {"key": "speed_std", "label": "速度标准差", "better": None},
 ]
 
 ECOLOGY_METRICS = [
-    {"key": "rabbits", "label": "兔子数量"},
-    {"key": "foxes", "label": "狐狸数量"},
-    {"key": "grass_coverage", "label": "草地覆盖率"},
-    {"key": "mean_energy", "label": "平均能量"},
+    {"key": "rabbits", "label": "兔子数量", "better": None},
+    {"key": "foxes", "label": "狐狸数量", "better": None},
+    {"key": "grass_coverage", "label": "草地覆盖率", "better": None},
+    {"key": "mean_energy", "label": "平均能量", "better": None},
 ]
 
 EPIDEMIC_METRICS = [
-    {"key": "susceptible", "label": "易感者 S"},
-    {"key": "infected", "label": "感染者 I"},
-    {"key": "recovered", "label": "康复者 R"},
-    {"key": "new_infections", "label": "新增感染"},
-    {"key": "prevalence", "label": "感染率"},
+    {"key": "susceptible", "label": "易感者 S", "better": None},
+    {"key": "infected", "label": "感染者 I", "better": "low"},
+    {"key": "recovered", "label": "康复者 R", "better": None},
+    {"key": "new_infections", "label": "新增感染", "better": "low"},
+    {"key": "prevalence", "label": "感染率", "better": "low"},
 ]
 
 # --------------------------------------------------------------------------- #
@@ -240,6 +242,11 @@ def interventions(domain: str) -> List[Dict[str, Any]]:
 
 def metric_labels(domain: str) -> Dict[str, str]:
     return {m["key"]: m["label"] for m in CATALOG[domain]["metrics"]}
+
+
+def metric_specs(domain: str) -> List[Dict[str, Any]]:
+    """Full metric specs (key / label / better-direction) for a domain."""
+    return CATALOG[domain]["metrics"]
 
 
 def known_domain(domain: str) -> bool:

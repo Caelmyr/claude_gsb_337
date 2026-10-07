@@ -11,6 +11,7 @@ Layout (all under :data:`DATA_DIR`)::
           steps/<nnnnnnnn>.json     # full per-step snapshot (individuals + grid)
           report.json               # generated report
       experiments/<exp_id>.json     # comparison experiments (param groups)
+      baselines/<scene_id>.json     # frozen baseline snapshot per scene
       exports/                      # exported CSV / JSON files
 
 Every write goes through :func:`atomic_write_json`: serialise, write to a temp
@@ -34,7 +35,7 @@ from typing import Any, Dict, List, Optional
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
-_DIRS = ("scenes", "runs", "experiments", "reports", "exports")
+_DIRS = ("scenes", "runs", "experiments", "reports", "exports", "baselines")
 
 
 def ensure_dirs() -> None:
@@ -286,6 +287,42 @@ def list_experiments() -> List[Dict[str, Any]]:
         if exp:
             out.append(exp)
     out.sort(key=lambda e: e.get("created_at", ""), reverse=True)
+    return out
+
+
+# --------------------------------------------------------------------------- #
+# Baselines (frozen per-scene reference snapshots for regression comparison)
+# --------------------------------------------------------------------------- #
+def baselines_dir() -> str:
+    return os.path.join(DATA_DIR, "baselines")
+
+
+def baseline_path(scene_id: str) -> str:
+    return os.path.join(baselines_dir(), f"{scene_id}.json")
+
+
+def save_baseline(scene_id: str, doc: Dict[str, Any]) -> None:
+    atomic_write_json(baseline_path(scene_id), doc)
+
+
+def load_baseline(scene_id: str) -> Optional[Dict[str, Any]]:
+    return read_json(baseline_path(scene_id))
+
+
+def delete_baseline(scene_id: str) -> bool:
+    return delete_file(baseline_path(scene_id))
+
+
+def list_baselines() -> List[Dict[str, Any]]:
+    """All baseline documents, most recently updated first."""
+    out: List[Dict[str, Any]] = []
+    for name in os.listdir(baselines_dir()):
+        if not name.endswith(".json"):
+            continue
+        doc = read_json(os.path.join(baselines_dir(), name))
+        if doc:
+            out.append(doc)
+    out.sort(key=lambda d: d.get("updated_at", ""), reverse=True)
     return out
 
 

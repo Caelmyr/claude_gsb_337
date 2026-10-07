@@ -144,4 +144,11 @@ def _seed_experiment(steps: int = 120) -> str:
         manager.run_batch(meta["id"], steps, keep_engine=False)
         exp.run_ids.append(meta["id"])
     storage.save_experiment(exp.to_dict())
+
+    # Freeze the "基线" parameter group as the scene's regression baseline so
+    # the baseline-regression page has something to compare against.
+    if exp.run_ids:
+        from . import baseline
+        baseline.mark_baseline("scene_epidemic_abm", exp.run_ids[0],
+                               note="示例基线：默认参数")
     return exp.id

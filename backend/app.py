@@ -15,6 +15,7 @@ from typing import Any, Dict
 from flask import Flask, jsonify, request, send_file, send_from_directory
 
 from . import catalog, export, models, report, storage, util
+from . import baseline as baseline_mod
 from .run_manager import manager
 
 FRONTEND_DIR = os.path.join(
@@ -108,6 +109,8 @@ def create_app() -> Flask:
     def delete_scene(scene_id: str):
         if not storage.delete_scene(scene_id):
             return _err(KeyError(f"scene not found: {scene_id}"), 404)
+        # The scene's regression baseline is orphaned without its scene.
+        storage.delete_baseline(scene_id)
         return jsonify({"deleted": scene_id})
 
     # ------------------------------------------------------------------ #
@@ -305,6 +308,57 @@ def create_app() -> Flask:
         if not storage.delete_experiment(exp_id):
             return _err(KeyError(f"experiment not found: {exp_id}"), 404)
         return jsonify({"deleted": exp_id})
+
+    # ------------------------------------------------------------------ #
+    # Baseline regression (frozen per-scene reference runs)
+    # ------------------------------------------------------------------ #
+    @app.route("/api/baselines", methods=["GET"])
+    def list_baselines():
+        docs = []
+        for doc in storage.list_baselines():
+            doc.pop("series", None)  # keep the listing light
+            docs.append(doc)
+        return jsonify({"baselines": docs})
+
+    @app.route("/api/baselines", methods=["POST"])
+    def set_baseline():
+        data = _json()
+        try:
+            doc = baseline_mod.mark_baseline(
+                data.get("scene_id", ""), data.get("run_id", ""),
+                note=data.get("note", ""))
+        except KeyError as exc:
+            return _err(exc, 404)
+        except ValueError as exc:
+            return _err(exc, 400)
+        return jsonify(baseline_mod.public_doc(doc)), 201
+
+    @app.route("/api/baselines/<scene_id>", methods=["GET"])
+    def get_baseline(scene_id: str):
+        doc = storage.load_baseline(scene_id)
+        if doc is None:
+            return _err(KeyError(f"baseline not found for scene: {scene_id}"), 404)
+        return jsonify(baseline_mod.public_doc(doc))
+
+    @app.route("/api/baselines/<scene_id>", methods=["DELETE"])
+    def delete_baseline(scene_id: str):
+        if not storage.delete_baseline(scene_id):
+            return _err(KeyError(f"baseline not found for scene: {scene_id}"), 404)
+        return jsonify({"deleted": scene_id})
+
+    @app.route("/api/runs/<run_id>/baseline", methods=["GET"])
+    def run_baseline_compare(run_id: str):
+        sigma = request.args.get("sigma", type=float)
+        min_run = request.args.get("min_run", type=int)
+        try:
+            return jsonify(baseline_mod.compare_run(
+                run_id,
+                sigma_mult=sigma or baseline_mod.DEFAULT_SIGMA_MULT,
+                min_run=min_run or baseline_mod.DEFAULT_MIN_RUN))
+        except KeyError as exc:
+            return _err(exc, 404)
+        except ValueError as exc:
+            return _err(exc, 400)
 
     # ------------------------------------------------------------------ #
     # Reports

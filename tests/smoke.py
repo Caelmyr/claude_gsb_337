@@ -16,7 +16,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from backend import models, report, storage  # noqa: E402
+from backend import baseline, models, report, storage  # noqa: E402
 from backend.engine import make_engine  # noqa: E402
 from backend.run_manager import manager  # noqa: E402
 
@@ -98,11 +98,78 @@ def run_lifecycle() -> None:
         manager.delete_run(rid)
 
 
+def baseline_regression() -> None:
+    scene = models.Scene.from_dict({
+        "domain": "epidemic", "model": "ca",
+        "config": {"width": 50, "height": 50, "beta": 0.4, "gamma": 0.1,
+                   "initial_infected": 5, "vaccination_rate": 0.9},
+    })
+    base = manager.create_run(scene, seed=7)
+    base_id = base["id"]
+    cand_same = cand_diff = None
+    try:
+        manager.run_batch(base_id, 30, keep_engine=False)
+        doc = baseline.mark_baseline(scene.id, base_id, note="v1")
+        assert doc["steps"] == 31 and doc["version"] == 1
+        assert storage.load_baseline(scene.id)["hash"] == doc["hash"]
+
+        # Same config + seed -> identical series -> all jitter, no real change.
+        # Longer candidate also exercises step-count alignment.
+        cand_same = manager.create_run(scene, seed=7)["id"]
+        manager.run_batch(cand_same, 45, keep_engine=False)
+        cmp_same = baseline.compare_run(cand_same)
+        assert cmp_same["alignment"]["overlap_end"] == 30
+        assert cmp_same["alignment"]["cand_tail"] == 15
+        assert cmp_same["verdict"]["overall"] == "unchanged", cmp_same["verdict"]
+        assert all(not m["significant"] for m in cmp_same["metrics"].values())
+
+        # Dropping the vaccination rate must surface as a real regression.
+        scene2 = models.Scene.from_dict({
+            "id": scene.id, "domain": "epidemic", "model": "ca",
+            "config": {**scene.config, "vaccination_rate": 0.0},
+        })
+        cand_diff = manager.create_run(scene2, seed=7)["id"]
+        manager.run_batch(cand_diff, 30, keep_engine=False)
+        cmp_diff = baseline.compare_run(cand_diff)
+        assert any(d["key"] == "vaccination_rate"
+                   for d in cmp_diff["config_diff"])
+        infected = cmp_diff["metrics"]["infected"]
+        assert infected["significant"] and infected["verdict"] == "worse"
+        assert infected["anomalies"], "expected anomalous intervals"
+        assert cmp_diff["verdict"]["overall"] in ("regressed", "mixed")
+        assert cmp_diff["summary"], "summary lines missing"
+
+        # Replacing the baseline bumps the version and keeps provenance.
+        doc2 = baseline.mark_baseline(scene.id, cand_diff, note="v2")
+        assert doc2["version"] == 2
+        assert doc2["history"] and doc2["history"][0]["hash"] == doc["hash"]
+
+        # Deleting the source run must not break comparisons (frozen copy).
+        manager.delete_run(cand_diff)
+        cand_diff = None
+        cmp_missing = baseline.compare_run(cand_same)
+        assert cmp_missing["baseline"]["source_status"] == "missing"
+
+        # Deleting the baseline removes comparability cleanly.
+        storage.delete_baseline(scene.id)
+        try:
+            baseline.compare_run(cand_same)
+            raise AssertionError("expected KeyError without baseline")
+        except KeyError:
+            pass
+    finally:
+        for rid in (base_id, cand_same, cand_diff):
+            if rid:
+                manager.delete_run(rid)
+        storage.delete_baseline(scene.id)
+
+
 def main() -> None:
     check("six engines step and snapshot", engines_step)
     check("interventions apply", interventions_apply)
     check("atomic sharded storage", storage_atomic_roundtrip)
     check("run lifecycle + report", run_lifecycle)
+    check("baseline regression", baseline_regression)
     print("\nall smoke tests passed")
 
 

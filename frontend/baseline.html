@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>基线回归 · 复杂系统模拟仿真平台</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="topnav" id="topnav"></nav>
+  <main class="container">
+    <h1 class="page-title">基线回归</h1>
+    <p class="page-sub">将一次运行冻结为场景基线；此后同场景运行自动与基线对比 —— 用 ±3σ 噪声带区分「真变化」与「正常抖动」，标注异常波动区间并生成差异摘要。</p>
+
+    <div class="card">
+      <h2>基线管理</h2>
+      <div class="grid grid-2">
+        <div class="field"><label>场景</label><select id="sceneSel"></select></div>
+        <div class="field"><label>设为基线的运行</label><select id="baseRunSel"></select></div>
+      </div>
+      <div class="field"><label>备注（可选）</label><input id="baseNote" placeholder="例如：v1 参数基准，β=0.3"></div>
+      <div class="row">
+        <button class="btn primary" id="markBtn">设为 / 更新基线</button>
+        <button class="btn danger" id="delBaseBtn" style="display:none">删除基线</button>
+      </div>
+      <div id="baseInfo" style="margin-top:14px"></div>
+    </div>
+
+    <div class="card" id="compareCard" style="display:none">
+      <div class="row between">
+        <h2 style="margin:0">与基线对比</h2>
+        <div class="row gap-6">
+          <label class="muted small">对比运行</label>
+          <select id="candRunSel" style="width:320px"></select>
+        </div>
+      </div>
+      <div id="verdictBanner" style="margin-top:12px"></div>
+      <div id="cmpBody" style="display:none">
+        <div class="grid grid-4" id="kpis" style="margin:14px 0"></div>
+        <h3>差异摘要</h3>
+        <ul class="summary" id="summaryList"></ul>
+        <div id="cfgDiffWrap" style="margin-top:12px"></div>
+        <h3 style="margin-top:18px">关键指标偏差</h3>
+        <div style="overflow-x:auto"><table id="metricTable"></table></div>
+        <h3 style="margin-top:18px">异常波动区间</h3>
+        <div id="anomWrap"></div>
+      </div>
+    </div>
+
+    <div class="card" id="chartCard" style="display:none">
+      <div class="row between">
+        <h2 id="chartTitle" style="margin:0"></h2>
+        <select id="chartMetricSel" style="width:220px"></select>
+      </div>
+      <div class="chart" id="chart"></div>
+      <p class="muted small">灰色带为基线 ±3σ 自然波动范围（带内偏差视为正常抖动）；红色区域为判定为「真变化」的异常波动区间；步数不一致时按重叠区间对齐，超出部分不参与对比。</p>
+    </div>
+  </main>
+
+  <script src="/vendor/echarts.min.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/baseline.js"></script>
+</body>
+</html>
